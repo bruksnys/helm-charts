@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "splash.fullname" . }}
+  labels:
+{{ include "splash.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+{{- if .Values.metrics.enabled }}
+    - port: 9158
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+{{- end }}
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "splash.name" . }}
+    release: {{ .Release.Name }}

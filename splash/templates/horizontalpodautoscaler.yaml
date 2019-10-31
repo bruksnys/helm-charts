@@ -1,0 +1,39 @@
+{{- if .Values.hpa.enabled -}}
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "splash.fullname" . }}
+spec:
+  maxReplicas: {{ .Values.hpa.maxReplicas}}
+  minReplicas: {{ .Values.hpa.minreplicas}}
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: {{ include "splash.fullname" . }}
+  metrics:
+  {{- range .Values.hpa.metrics }}
+  - type: {{ .type }}
+    {{ .type | lower }}:
+  {{- if .object }}
+      describedObject:
+        apiVersion: {{ .object.describedObject.apiVersion }}
+        kind: {{ .object.describedObject.kind }}
+        name: {{ .object.describedObject.name }}
+    {{- if .object.metric }}
+      metric: 
+        name: {{ .object.metric.name }}
+    {{- end }}
+    {{- if .object.target }}
+      target:
+        type: {{ .object.target.type }}
+    {{- end }}
+    {{- if contains "AverageValue" .object.target.type }}
+        averageValue: {{ .object.target.averageValue }}
+    {{- else if contains "Value" .object.target.type }}
+        value: {{ .object.target.value}}
+    {{- else if contains "AverageUtilization" .object.target.type }}
+        averageUtilization: {{ .object.target.averageUtilization }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "splash.fullname" . }}
+  labels:
+{{ include "splash.labels" . | indent 4 }}
+spec:
+  name: {{ include "splash.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "splash.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/metrics-configmap.yaml") . | sha256sum }}
+{{- with .Values.podAnnotations }}
+{{- toYaml . | trim | nindent 8 }}
+{{- end }}
+      labels:
+{{ include "splash.labels" . | indent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ include "splash.fullname" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- range $key, $value := .Values.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          args:
+            {{- range .Values.args }}
+            - {{ . }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8050
+              protocol: TCP
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /_ping
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /_ping
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- if .Values.metrics.enabled }}
+        - name: {{ include "splash.fullname" . }}-metrics
+          image: "{{ .Values.metrics.image.repository }}:{{ .Values.metrics.image.tag }}"
+          imagePullPolicy: {{ .Values.metrics.image.pullPolicy | quote }}
+          env:
+          {{- range $key, $value := .Values.metrics.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          args:
+          - /etc/prometheus-jsonpath-exporter/config.yml
+          ports:
+          - name: metrics
+            containerPort: 9158
+          {{- if .Values.metrics.livenessProbe.enabled }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            initialDelaySeconds: {{ .Values.metrics.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.metrics.livenessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.metrics.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.metrics.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.metrics.livenessProbe.successThreshold }}
+        {{- end }}
+        {{- if .Values.metrics.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            initialDelaySeconds: {{ .Values.metrics.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.metrics.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.metrics.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.metrics.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.metrics.readinessProbe.successThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.metrics.resources | nindent 12 }}
+          volumeMounts:
+          - name: metrics-config
+            mountPath: /etc/prometheus-jsonpath-exporter
+{{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes: 
+{{- if .Values.metrics.enabled }}
+        - name: metrics-config
+          configMap:
+            name: {{ include "splash.fullname" . }}-metrics-config
+{{- end }}

@@ -1,0 +1,130 @@
+# Default values for splash.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: scrapinghub/splash
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+env: {}
+  # key: value
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/"
+  prometheus.io/port: "9158"
+service:
+  type: ClusterIP
+  port: 8050
+
+livenessProbe: {}
+  # enabled: true
+  # timeoutSeconds: 20
+  # periodSeconds: 30
+  # failureThreshold: 6
+  # successThreshold: 1
+readinessProbe: {}
+  # enabled: true
+  # initialDelaySeconds: 10
+  # timeoutSeconds: 20
+  # periodSeconds: 30
+  # failureThreshold: 3
+  # successThreshold: 1
+
+args:
+  - "--maxrss"
+  - "'500'"
+  - "--disable-private-mode"
+
+ingress:
+  enabled: true
+  auth:
+    enabled: true
+    username: username
+    password: password
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+      - /
+
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+hpa:
+  enabled: true
+  maxReplicas: 3
+  minReplicas: 1
+  metrics:
+  - type: Object
+    object:
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: splash
+      metric: 
+        name: nginx_ingress_controller_requests
+      target:
+        type: AverageValue
+        averageValue: 500
+resources: 
+  limits:
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+metrics:
+  enabled: true
+  image:
+    repository: bruksnys/prometheus-jsonpath-exporter
+    tag: release-v0.0.3
+    pullPolicy: IfNotPresent
+  env: {}
+    # key: value
+  livenessProbe: {}
+    # enabled: true
+    # timeoutSeconds: 20
+    # periodSeconds: 30
+    # failureThreshold: 6
+    # successThreshold: 1
+  readinessProbe: {}
+    # enabled: true
+    # initialDelaySeconds: 10
+    # timeoutSeconds: 20
+    # periodSeconds: 30
+    # failureThreshold: 3
+    # successThreshold: 1
+  config: |-
+    exporter_port: 9158 # Port on which prometheu can call this exporter to get metrics
+    log_level: info
+    json_data_url: http://localhost:8050/_debug # Url to get json data used for fetching metric values
+    metric_name_prefix: splash # All metric names will be prefixed with this value
+    metrics:
+    - name: total_requests # Final metric name will be kong_cluster_total_nodes
+      description: Total number of HTTP Requests Now
+      path: $.leaks.Request

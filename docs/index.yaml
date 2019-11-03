@@ -3,20 +3,20 @@ entries:
   splash:
   - apiVersion: v1
     appVersion: "1.0"
-    created: "2019-11-03T16:18:52.3026963+02:00"
+    created: "2019-11-03T16:30:51.4567302+02:00"
     description: A Helm chart for ScrapingHub Splash
     digest: 2243cf53e7a2360778ee4ede27aa5515a523f3abe294f36b51ef1dcaad86e5b9
     name: splash
     urls:
-    - bruksnys.github.io/helm-charts/splash-0.1.1.tgz
+    - splash-0.1.1.tgz
     version: 0.1.1
   - apiVersion: v1
     appVersion: "1.0"
-    created: "2019-11-03T16:18:52.2970049+02:00"
+    created: "2019-11-03T16:30:51.4562401+02:00"
     description: A Helm chart for ScrapingHub Splash
     digest: d69b8964ef1638c5d808b39cbf667b1b2a47b70143f5aac5c002fd3e08a524a7
     name: splash
     urls:
-    - bruksnys.github.io/helm-charts/splash-0.1.0.tgz
+    - splash-0.1.0.tgz
     version: 0.1.0
-generated: "2019-11-03T16:18:52.2898941+02:00"
+generated: "2019-11-03T16:30:51.4543723+02:00"

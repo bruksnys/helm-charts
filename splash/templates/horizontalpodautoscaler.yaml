@@ -3,6 +3,10 @@ apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "splash.fullname" . }}
+  annotations:
+{{- with .Values.hpa.annotations }}
+{{- toYaml . | trim | nindent 4 }}
+{{- end }}
 spec:
   maxReplicas: {{ .Values.hpa.maxReplicas}}
   minReplicas: {{ .Values.hpa.minreplicas}}
@@ -35,5 +39,27 @@ spec:
         averageUtilization: {{ .object.target.averageUtilization }}
     {{- end }}
   {{- end }}
+  {{- if .external }}
+    {{- if .external.metric }}
+      metric: 
+        name: {{ .external.metric.name }}
+        selector:
+          matchLabels:
+          {{- with .external.metric.selector.matchLabels }}
+          {{- toYaml . | trim | nindent 12 }}
+          {{- end }}
+    {{- end }}
+    {{- if .external.target }}
+      target:
+        type: {{ .external.target.type }}
+    {{- end }}
+    {{- if contains "AverageValue" .external.target.type }}
+        averageValue: {{ .external.target.averageValue }}
+    {{- else if contains "Value" .external.target.type }}
+        value: {{ .external.target.value}}
+    {{- else if contains "AverageUtilization" .external.target.type }}
+        averageUtilization: {{ .external.target.averageUtilization }}
+    {{- end }}
+  {{- end}}
   {{- end }}
 {{- end }}

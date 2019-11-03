@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: scrapinghub/splash
-  tag: latest
+  tag: 3.4
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -39,11 +39,11 @@ readinessProbe: {}
 
 args:
   - "--maxrss"
-  - "'500'"
+  - "'500'" # Should closely match resources.limits
   - "--disable-private-mode"
 
 ingress:
-  enabled: true
+  enabled: false
   auth:
     enabled: true
     username: username
@@ -61,20 +61,22 @@ ingress:
 
 hpa:
   enabled: true
+  annotations: 
+    metric-config.external.prometheus-query.prometheus/pod-request-percentage: |
+      sum(irate(nginx_ingress_controller_requests{namespace="splash"}[2m]))/(sum(splash_total_requests{kubernetes_namespace="splash"})*sum(kube_pod_container_status_running{namespace="splash"}))
   maxReplicas: 3
   minReplicas: 1
   metrics:
-  - type: Object
-    object:
-      describedObject:
-        apiVersion: v1
-        kind: Service
-        name: splash
+  - type: External
+    external:
       metric: 
-        name: nginx_ingress_controller_requests
+        name: prometheus-query
+        selector:
+          matchLabels:
+            query-name: pod-request-percentage
       target:
         type: AverageValue
-        averageValue: 500
+        averageValue: 1
 resources: 
   limits:
     memory: 512Mi
@@ -120,11 +122,11 @@ metrics:
     # failureThreshold: 3
     # successThreshold: 1
   config: |-
-    exporter_port: 9158 # Port on which prometheu can call this exporter to get metrics
+    exporter_port: 9158
     log_level: info
     json_data_url: http://localhost:8050/_debug # Url to get json data used for fetching metric values
     metric_name_prefix: splash # All metric names will be prefixed with this value
     metrics:
-    - name: total_requests # Final metric name will be kong_cluster_total_nodes
+    - name: total_requests # Final metric name will be splash_total_requests
       description: Total number of HTTP Requests Now
       path: $.leaks.Request

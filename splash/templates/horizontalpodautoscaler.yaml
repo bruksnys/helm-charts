@@ -9,7 +9,7 @@ metadata:
 {{- end }}
 spec:
   maxReplicas: {{ .Values.hpa.maxReplicas}}
-  minReplicas: {{ .Values.hpa.minreplicas}}
+  minReplicas: {{ .Values.hpa.minReplicas}}
   scaleTargetRef:
     apiVersion: extensions/v1beta1
     kind: Deployment
